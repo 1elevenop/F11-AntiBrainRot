@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">F11</string>
+    <string name="tagline">Anti-BrainRot Guard</string>
+
+    <string name="accessibility_service_label">F11 Shield</string>
+    <string name="accessibility_service_summary">Counts swipes in short-form video feeds and raises a shield when you hit your limit.</string>
+    <string name="accessibility_service_description">F11 uses the Accessibility API only to detect which app is in front and when you swipe in short-form video feeds (Reels, Shorts, TikTok, Spotlight). It counts swipes on your device and draws a full-screen shield when your limit is reached, or blocks those apps entirely while Max Focus is on. F11 does not read text, messages or passwords, does not record your screen, and has no internet permission: nothing it observes ever leaves your phone.</string>
+
+    <string name="overlay_title">F11</string>
+    <string name="overlay_headline">Scroll limit reached</string>
+    <string name="overlay_body_cooldown">Your swipe budget for Reels and Shorts is used up. DMs, stories and the rest of %1$s are still open.</string>
+    <string name="overlay_countdown">%1$s unlocks in %2$s</string>
+    <string name="overlay_headline_blocked">%1$s are blocked</string>
+    <string name="overlay_body_blocked">You chose to keep this feed closed. Everything else in %1$s still works.</string>
+    <string name="overlay_headline_max_focus">Max Focus is on</string>
+    <string name="overlay_body_max_focus">%1$s is blocked until you end Max Focus in F11. You have better things to do right now.</string>
+    <string name="overlay_body_max_focus_scheduled">%1$s is blocked during your focus time (%2$s). Scheduled focus cannot be ended early.</string>
+    <string name="overlay_leave_surface">Leave %1$s</string>
+    <string name="overlay_leave_home">Go home</string>
+</resources>
