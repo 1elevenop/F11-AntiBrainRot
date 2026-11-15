@@ -42,6 +42,7 @@ private data class HeroPage(val title: String, val value: Int, val unit: String,
 fun HomeScreen(
     settings: F11Settings,
     serviceEnabled: Boolean,
+    serviceStalled: Boolean,
     onEnableService: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -78,13 +79,14 @@ fun HomeScreen(
 
         if (!serviceEnabled) {
             Tile(Modifier.padding(horizontal = 20.dp).fillMaxWidth(), brush = F11Palette.Sunset) {
-                TileLabel("Shield is off")
+                TileLabel(if (serviceStalled) "Shield stopped" else "Shield is off")
                 SpacerH(4.dp)
-                Text("Turn on the F11 Shield so it can count and guard your feeds.",
+                Text(if (serviceStalled) "Android stopped F11 Shield, often after an update. Turn it off and on again in Accessibility settings."
+                    else "Turn on the F11 Shield so it can count and guard your feeds.",
                     style = MaterialTheme.typography.bodySmall, color = F11Palette.Text.copy(alpha = 0.8f))
                 SpacerH(12.dp)
                 Button(onClick = onEnableService, colors = ButtonDefaults.buttonColors(
-                    containerColor = F11Palette.Text, contentColor = F11Palette.Black)) { Text("Enable") }
+                    containerColor = F11Palette.Text, contentColor = F11Palette.Black)) { Text(if (serviceStalled) "Open settings" else "Enable") }
             }
             SpacerH(16.dp)
         }

@@ -2,6 +2,7 @@ package com.f11.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -25,6 +26,8 @@ class MainActivity : ComponentActivity() {
 
     private val prefs by lazy { PreferencesManager.get(this) }
     private var serviceEnabled by mutableStateOf(false)
+    /** Switched on in Accessibility settings but not running (Android can drop it after an app update). */
+    private var serviceStalled by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +41,8 @@ class MainActivity : ComponentActivity() {
                     settings = settings,
                     prefs = prefs,
                     serviceEnabled = serviceEnabled,
-                    onEnableService = { showDisclosure = true },
+                    serviceStalled = serviceStalled,
+                    onEnableService = { if (serviceStalled) openAccessibilitySettings() else showDisclosure = true },
                 )
 
                 if (showDisclosure) {
@@ -57,17 +61,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        serviceEnabled = isF11ServiceEnabled()
+        prefs.refresh() // e.g. a new day began while F11 was in the background
+        updateServiceState()
     }
 
     // Android may re-bind the service a moment after the screen appears (e.g. after an update),
     // so keep listening instead of checking only once.
     private val stateListener = AccessibilityManager.AccessibilityStateChangeListener {
-        serviceEnabled = isF11ServiceEnabled()
+        updateServiceState()
     }
     private val servicesListener: Any? by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            AccessibilityManager.AccessibilityServicesStateChangeListener { serviceEnabled = isF11ServiceEnabled() }
+            AccessibilityManager.AccessibilityServicesStateChangeListener { updateServiceState() }
         } else {
             null
         }
@@ -93,6 +98,17 @@ class MainActivity : ComponentActivity() {
             )
         }
         super.onStop()
+    }
+
+    private fun updateServiceState() {
+        serviceEnabled = isF11ServiceEnabled()
+        serviceStalled = !serviceEnabled && isSwitchedOnInSettings()
+    }
+
+    private fun isSwitchedOnInSettings(): Boolean {
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
+        val me = ComponentName(this, F11AccessibilityService::class.java)
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == me }
     }
 
     private fun isF11ServiceEnabled(): Boolean {

@@ -123,7 +123,13 @@ class F11AccessibilityService : AccessibilityService() {
         syncWithSettings(settings)
 
         when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> onWindowChanged(packageName, settings)
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                // F11's own overlays also raise window events, so only F11's real screen counts.
+                if (packageName == this.packageName && event.className?.toString() == MAIN_ACTIVITY) {
+                    counter?.hide()
+                }
+                onWindowChanged(packageName, settings)
+            }
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> onScrolled(event, packageName, settings)
         }
     }
@@ -316,6 +322,7 @@ class F11AccessibilityService : AccessibilityService() {
     private companion object {
         const val TAG = "F11Service"
         const val MAX_ANCESTOR_DEPTH = 4
+        val MAIN_ACTIVITY: String = com.f11.app.MainActivity::class.java.name
         const val PAGER_POLL_MS = 1_000L
         const val SCHEDULE_TICK_MS = 30_000L
         const val LEAVE_CHECK_MS = 1_000L

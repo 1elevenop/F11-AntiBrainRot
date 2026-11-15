@@ -66,58 +66,65 @@ class PreferencesManager private constructor(context: Context) {
     private val _settings = MutableStateFlow(read())
     val settings: StateFlow<F11Settings> = _settings.asStateFlow()
 
-    // Held in a field: SharedPreferences only keeps a weak reference to listeners.
-    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+    val current: F11Settings get() = _settings.value
+
+    /**
+     * Re-reads storage into [settings]. Every write goes through this class, so it refreshes
+     * itself after writing instead of relying on an OnSharedPreferenceChangeListener: those are
+     * held weakly, and R8 may drop the field that keeps one alive in release builds.
+     */
+    fun refresh() {
         _settings.value = read()
     }
 
-    init {
-        prefs.registerOnSharedPreferenceChangeListener(listener)
+    private inline fun write(block: (SharedPreferences.Editor) -> Unit) {
+        val editor = prefs.edit()
+        block(editor)
+        editor.apply()
+        refresh()
     }
 
-    val current: F11Settings get() = _settings.value
-
-    fun setGuardEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_GUARD_ENABLED, enabled).apply()
+    fun setGuardEnabled(enabled: Boolean) = write { it.putBoolean(KEY_GUARD_ENABLED, enabled) }
 
     fun setSwipeLimit(limit: Int) =
-        prefs.edit().putInt(KEY_SWIPE_LIMIT, limit.coerceIn(SWIPE_LIMIT_RANGE)).apply()
+        write { it.putInt(KEY_SWIPE_LIMIT, limit.coerceIn(SWIPE_LIMIT_RANGE)) }
 
     fun setCooldownMinutes(minutes: Int) =
-        prefs.edit().putInt(KEY_COOLDOWN_MINUTES, minutes.coerceIn(COOLDOWN_RANGE)).apply()
+        write { it.putInt(KEY_COOLDOWN_MINUTES, minutes.coerceIn(COOLDOWN_RANGE)) }
 
     fun setAppGuarded(packageName: String, guarded: Boolean) {
         val updated = current.disabledPackages.toMutableSet().apply {
             if (guarded) remove(packageName) else add(packageName)
         }
-        prefs.edit().putStringSet(KEY_DISABLED_PACKAGES, updated).apply()
+        write { it.putStringSet(KEY_DISABLED_PACKAGES, updated) }
     }
 
     fun setBlockShortFormCompletely(enabled: Boolean) =
-        prefs.edit().putBoolean(KEY_BLOCK_SHORT_FORM, enabled).apply()
+        write { it.putBoolean(KEY_BLOCK_SHORT_FORM, enabled) }
 
-    fun setMaxFocus(enabled: Boolean) = prefs.edit().putBoolean(KEY_MAX_FOCUS, enabled).apply()
+    fun setMaxFocus(enabled: Boolean) = write { it.putBoolean(KEY_MAX_FOCUS, enabled) }
 
-    fun setShowCounter(enabled: Boolean) = prefs.edit().putBoolean(KEY_SHOW_COUNTER, enabled).apply()
+    fun setShowCounter(enabled: Boolean) = write { it.putBoolean(KEY_SHOW_COUNTER, enabled) }
 
-    fun setVoiceFriction(enabled: Boolean) = prefs.edit().putBoolean(KEY_VOICE_FRICTION, enabled).apply()
+    fun setVoiceFriction(enabled: Boolean) = write { it.putBoolean(KEY_VOICE_FRICTION, enabled) }
 
     fun setFrictionLanguage(language: FrictionLanguage) =
-        prefs.edit().putString(KEY_FRICTION_LANGUAGE, language.code).apply()
+        write { it.putString(KEY_FRICTION_LANGUAGE, language.code) }
 
-    fun setHindiForm(form: HindiForm) = prefs.edit().putString(KEY_HINDI_FORM, form.code).apply()
+    fun setHindiForm(form: HindiForm) = write { it.putString(KEY_HINDI_FORM, form.code) }
 
     /** Adds or replaces a schedule (matched by id). */
     fun saveSchedule(schedule: FocusSchedule) {
         val updated = current.schedules.filterNot { it.id == schedule.id } + schedule
-        prefs.edit().putString(KEY_SCHEDULES, FocusSchedules.encode(updated.sortedBy { it.startMinute })).apply()
+        write { it.putString(KEY_SCHEDULES, FocusSchedules.encode(updated.sortedBy { it.startMinute })) }
     }
 
     fun deleteSchedule(id: Long) {
-        prefs.edit().putString(KEY_SCHEDULES, FocusSchedules.encode(current.schedules.filterNot { it.id == id })).apply()
+        write { it.putString(KEY_SCHEDULES, FocusSchedules.encode(current.schedules.filterNot { it.id == id })) }
     }
 
     fun setDisclosureAccepted(accepted: Boolean) =
-        prefs.edit().putBoolean(KEY_DISCLOSURE_ACCEPTED, accepted).apply()
+        write { it.putBoolean(KEY_DISCLOSURE_ACCEPTED, accepted) }
 
     fun recordSwipe(today: LocalDate = LocalDate.now()) {
         val editor = prefs.edit()
@@ -125,6 +132,7 @@ class PreferencesManager private constructor(context: Context) {
         editor.putInt(KEY_SWIPES_TODAY, swipes + 1)
         writeHistory(editor, today, swipes + 1, shields)
         editor.apply()
+        refresh()
     }
 
     /** Counts a raised shield; [blockedUntil] is set only for cooldown shields. */
@@ -135,9 +143,10 @@ class PreferencesManager private constructor(context: Context) {
         if (blockedUntil != null) editor.putLong(KEY_BLOCKED_UNTIL, blockedUntil)
         writeHistory(editor, today, swipes, shields + 1)
         editor.apply()
+        refresh()
     }
 
-    fun clearBlock() = prefs.edit().putLong(KEY_BLOCKED_UNTIL, 0L).apply()
+    fun clearBlock() = write { it.putLong(KEY_BLOCKED_UNTIL, 0L) }
 
     private fun writeHistory(editor: SharedPreferences.Editor, today: LocalDate, swipes: Int, shields: Int) {
         val updated = History.upsert(History.decode(prefs.getString(KEY_HISTORY, null)),

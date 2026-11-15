@@ -33,6 +33,7 @@ fun F11App(
     prefs: PreferencesManager,
     serviceEnabled: Boolean,
     onEnableService: () -> Unit,
+    serviceStalled: Boolean = false,
 ) {
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     var pending by remember { mutableStateOf<PendingRelax?>(null) }
@@ -49,6 +50,7 @@ fun F11App(
             Screen.HOME -> HomeScreen(
                 settings = settings,
                 serviceEnabled = serviceEnabled,
+                serviceStalled = serviceStalled,
                 onEnableService = onEnableService,
                 onOpenHistory = { screen = Screen.HISTORY },
                 onOpenSettings = { screen = Screen.SETTINGS },
