@@ -23,5 +23,6 @@ First public release. **One life. Stop the scroll.**
 1. Download `F11-v1.0.apk` below and open it. Allow installing from your browser if Android asks.
 2. Open F11, tap **Enable**, read the disclosure and turn on **F11 Shield** in Accessibility settings.
 3. Android may show "Restricted setting" for sideloaded apps. If so, open **Settings → Apps → F11 → ⋮ → Allow restricted settings**, then try again.
+4. If Google Play Protect says **"App blocked to protect your device"** (common in India), see [Install](README.md#app-blocked-to-protect-your-device-google-play-protect) in the README.
 
 Requires Android 8.0 or later.

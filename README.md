@@ -26,6 +26,22 @@
 
 Guarded apps: Instagram (Reels), YouTube (Shorts), TikTok, Facebook (Reels), Snapchat (Spotlight).
 
+## Install
+
+Download **F11-v1.0.apk** from the [latest release](https://github.com/1elevenop/F11-AntiBrainRot/releases/latest), open it, then in F11 tap **Enable** and turn on **F11 Shield** in Accessibility settings. If Android shows **"Restricted setting"**, open **Settings → Apps → F11 → ⋮ → Allow restricted settings** and try again. Requires Android 8.0 or later.
+
+### "App blocked to protect your device" (Google Play Protect)
+
+In some countries, including **India**, Google Play Protect's *enhanced fraud protection* blocks any app installed from a browser, messaging app or file manager if it uses an **accessibility service**. F11 needs one to see Reels and draw the shield, so it's blocked before installation. This is a blanket rule for that permission, not a finding about F11, and the dialog has no "install anyway" option.
+
+Options, best first:
+
+1. **Google Play:** not available there yet. Apps installed from Google Play aren't affected by this block.
+2. **USB install (adb):** `adb install F11-v1.0.apk` from a computer isn't affected.
+3. **Temporarily turn off scanning (advanced, at your own risk):** Play Store → profile icon → **Play Protect → ⚙ Settings** → turn off **Scan apps with Play Protect**, install F11, then **turn scanning back on**. This lowers protection for anything installed while it's off.
+
+You can check that your APK is genuine with the SHA-256 checksum and signing certificate fingerprint on the release page.
+
 ## Privacy
 
 - **No `INTERNET` permission.** Verifiable in [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml).
