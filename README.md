@@ -66,3 +66,7 @@ art/            Logo artwork
 ## Media
 
 Everything for a store listing lives in [`media/`](media): the 512 px icon, the 1024×500 feature graphic, seven 1080×1920 framed screenshots, the raw captures and [listing copy](media/store-listing.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Jaydeep G. (1elevenop)
