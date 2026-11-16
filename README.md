@@ -89,7 +89,7 @@ Install the new F11 over the old one. Your history, settings and schedules are k
 **"App blocked to protect your device" (Google Play Protect).** In some countries, including **India**, Play Protect blocks downloaded apps that use an accessibility service. This affects only **F11 Shield**, not F11, and the dialog has no "install anyway" option. Your options, best first:
 
 1. **Google Play:** not available there yet. Apps from Google Play aren't affected.
-2. **USB install from a computer:** with [platform-tools](https://developer.android.com/tools/releases/platform-tools) installed and USB debugging on, run `adb install F11-Shield.apk`.
+2. **USB install from a computer:** with [platform-tools](https://developer.android.com/tools/releases/platform-tools) installed and USB debugging on, run `adb install F11-Shield-v1.0.apk`.
 3. **Skip it:** Max Focus and focus schedules work without the plugin.
 
 **"Payments blocked" in a UPI app.** Some payment apps refuse to work while any downloaded app has Accessibility on. Turn **F11 Shield** off in Accessibility settings, restart the phone, pay, then turn it back on. F11 itself doesn't cause this.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## F11 1.1 + F11 Shield 1.0 — 16 November 2026
 
 ### Changed
 - **F11 no longer uses Accessibility.** It installs normally even where Play Protect blocks sideloaded accessibility apps, and doesn't pause UPI payments. Max Focus and focus schedules now use Usage access and "Display over other apps".
