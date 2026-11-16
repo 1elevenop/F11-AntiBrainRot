@@ -1,6 +1,5 @@
 package com.f11.app.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -25,8 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.f11.app.data.F11Settings
@@ -35,8 +31,6 @@ import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
-import com.f11.app.data.FrictionLanguage
-import com.f11.app.data.HindiForm
 import com.f11.app.data.PreferencesManager
 import com.f11.app.data.TargetAppsConfig
 import kotlin.math.roundToInt
@@ -48,20 +42,22 @@ class SettingsActions(
     val onCooldown: (Int) -> Unit,
     val onAppGuarded: (String, String, Boolean) -> Unit,
     val onShowCounter: (Boolean) -> Unit,
-    val onVoiceFriction: (Boolean) -> Unit,
-    val onLanguage: (FrictionLanguage) -> Unit,
-    val onHindiForm: (HindiForm) -> Unit,
-    val onEnableService: () -> Unit,
     val onAddSchedule: () -> Unit,
     val onEditSchedule: (FocusSchedule) -> Unit,
     val onScheduleEnabled: (FocusSchedule, Boolean) -> Unit,
 )
 
 @Composable
-fun SettingsScreen(settings: F11Settings, serviceEnabled: Boolean, actions: SettingsActions, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val voiceAvailable = remember { isOnDeviceSpeechAvailable(context) }
-    val budgetActive = settings.guardEnabled && !settings.blockShortFormCompletely
+fun SettingsScreen(
+    settings: F11Settings,
+    setup: SetupState,
+    setupActions: SetupActions,
+    actions: SettingsActions,
+    onBack: () -> Unit,
+) {
+    // Swipe limits and the counter work only through the F11 Shield plugin.
+    val swipes = setup.shieldOn
+    val budgetActive = swipes && settings.guardEnabled && !settings.blockShortFormCompletely
 
     Column(
         Modifier
@@ -75,10 +71,15 @@ fun SettingsScreen(settings: F11Settings, serviceEnabled: Boolean, actions: Sett
     ) {
         TopBar("Settings", left = { CircleIconButton("Back", onBack) { BackGlyph() } })
 
-        SectionHeader("Limits")
+        SectionHeader("Reels & Shorts")
+        ShieldPluginCard(setup, setupActions)
         Tile(Modifier.fillMaxWidth()) {
+            if (!swipes) {
+                Text("These need the F11 Shield plugin.", style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
+                Divider()
+            }
             ToggleRow("Block Reels & Shorts completely", "No budget. DMs, stories and regular videos stay open.",
-                settings.blockShortFormCompletely, actions.onBlockShortForm, enabled = settings.guardEnabled)
+                settings.blockShortFormCompletely, actions.onBlockShortForm, enabled = swipes && settings.guardEnabled)
             Divider()
             SettingSlider("Swipes per session", settings.swipeLimit, PreferencesManager.SWIPE_LIMIT_RANGE, 5,
                 { "$it" }, actions.onSwipeLimit, enabled = budgetActive)
@@ -88,6 +89,7 @@ fun SettingsScreen(settings: F11Settings, serviceEnabled: Boolean, actions: Sett
         }
 
         SectionHeader("Focus schedule")
+        FocusSetupCard(setup, setupActions)
         Tile(Modifier.fillMaxWidth()) {
             Text("Max Focus turns on by itself at these times and cannot be ended early.",
                 style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
@@ -114,37 +116,10 @@ fun SettingsScreen(settings: F11Settings, serviceEnabled: Boolean, actions: Sett
                 modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = actions.onAddSchedule).padding(vertical = 4.dp))
         }
 
-        SectionHeader("Friction")
-        Tile(Modifier.fillMaxWidth()) {
-            Text("Loosening any rule needs a 30 s pause and typing a strong line.",
-                style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
-            Divider()
-            ToggleRow(
-                "Say a line out loud too",
-                if (voiceAvailable) "Extra layer. Speech is recognised on your phone; audio never leaves it."
-                else "On-device speech isn't available on this phone; you'll type a second line instead.",
-                settings.voiceFriction, actions.onVoiceFriction,
-            )
-            Divider()
-            Text("Language", style = MaterialTheme.typography.bodyLarge, color = F11Palette.Text)
-            SpacerH(8.dp)
-            ChipRow(FrictionLanguage.entries.map { it.label }, FrictionLanguage.entries.indexOf(settings.frictionLanguage)) {
-                actions.onLanguage(FrictionLanguage.entries[it])
-            }
-            if (settings.frictionLanguage == FrictionLanguage.HINDI) {
-                SpacerH(12.dp)
-                Text("Verb form", style = MaterialTheme.typography.bodyLarge, color = F11Palette.Text)
-                SpacerH(8.dp)
-                ChipRow(HindiForm.entries.map { it.label }, HindiForm.entries.indexOf(settings.hindiForm)) {
-                    actions.onHindiForm(HindiForm.entries[it])
-                }
-            }
-        }
-
         SectionHeader("Awareness")
         Tile(Modifier.fillMaxWidth()) {
             ToggleRow("Live swipe counter", "Shows today's count at the top of Reels and Shorts, even with the guard off.",
-                settings.showCounter, actions.onShowCounter)
+                settings.showCounter, actions.onShowCounter, enabled = swipes)
         }
 
         SectionHeader("Guarded feeds")
@@ -157,12 +132,10 @@ fun SettingsScreen(settings: F11Settings, serviceEnabled: Boolean, actions: Sett
         }
 
         SectionHeader("Privacy")
-        Tile(Modifier.fillMaxWidth(), onClick = if (serviceEnabled) null else actions.onEnableService) {
-            Text(if (serviceEnabled) "F11 Shield service is on" else "F11 Shield service is off · tap to enable",
-                style = MaterialTheme.typography.bodyLarge, color = if (serviceEnabled) F11Palette.Mint else F11Palette.Ember)
-            SpacerH(6.dp)
-            Text("F11 has no internet permission. It reads only app names and view ids, never text, and keeps " +
-                "only daily counts on this phone.", style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
+        Tile(Modifier.fillMaxWidth()) {
+            Text("F11 has no internet permission. It uses only app names (and, with the Shield plugin, view " +
+                "ids), never text, and keeps only daily counts on this phone.",
+                style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
         }
     }
 }
@@ -190,24 +163,6 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = F11Palette.TextDim)
         }
         F11Switch(checked, onChange, enabled)
-    }
-}
-
-@Composable
-private fun ChipRow(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        labels.forEachIndexed { i, label ->
-            Text(
-                label,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (i == selected) F11Palette.Black else F11Palette.Text,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(if (i == selected) F11Palette.Text else F11Palette.TileHigh)
-                    .clickable(role = Role.RadioButton) { onSelect(i) }
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
-            )
-        }
     }
 }
 

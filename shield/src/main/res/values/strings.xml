@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">F11 Shield</string>
+    <string name="accessibility_service_label">F11 Shield</string>
+    <string name="accessibility_service_summary">Counts swipes in short-form video feeds and raises a shield when you hit your limit.</string>
+    <string name="accessibility_service_description">F11 uses the Accessibility API only to detect which app is in front and when you swipe in short-form video feeds (Reels, Shorts, TikTok, Spotlight). It counts swipes on your device and draws a full-screen shield when your limit is reached, or blocks those apps entirely while Max Focus is on. F11 does not read text, messages or passwords, does not record your screen, and has no internet permission: nothing it observes ever leaves your phone.</string>
+</resources>

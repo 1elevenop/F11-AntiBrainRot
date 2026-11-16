@@ -31,9 +31,8 @@ private class ScheduleEdit(val schedule: FocusSchedule?)
 fun F11App(
     settings: F11Settings,
     prefs: PreferencesManager,
-    serviceEnabled: Boolean,
-    onEnableService: () -> Unit,
-    serviceStalled: Boolean = false,
+    setup: SetupState,
+    setupActions: SetupActions,
 ) {
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     var pending by remember { mutableStateOf<PendingRelax?>(null) }
@@ -49,9 +48,8 @@ fun F11App(
         when (screen) {
             Screen.HOME -> HomeScreen(
                 settings = settings,
-                serviceEnabled = serviceEnabled,
-                serviceStalled = serviceStalled,
-                onEnableService = onEnableService,
+                setup = setup,
+                setupActions = setupActions,
                 onOpenHistory = { screen = Screen.HISTORY },
                 onOpenSettings = { screen = Screen.SETTINGS },
                 onGuardToggle = { on ->
@@ -68,7 +66,8 @@ fun F11App(
             Screen.HISTORY -> HistoryScreen(settings, onBack = { screen = Screen.HOME })
             Screen.SETTINGS -> SettingsScreen(
                 settings = settings,
-                serviceEnabled = serviceEnabled,
+                setup = setup,
+                setupActions = setupActions,
                 onBack = { screen = Screen.HOME },
                 actions = SettingsActions(
                     onBlockShortForm = { on ->
@@ -91,13 +90,6 @@ fun F11App(
                         if (on) prefs.setShowCounter(true)
                         else relax("hide the live swipe counter") { prefs.setShowCounter(false) }
                     },
-                    onVoiceFriction = { on ->
-                        if (on) prefs.setVoiceFriction(true)
-                        else relax("remove the spoken-line step") { prefs.setVoiceFriction(false) }
-                    },
-                    onLanguage = prefs::setFrictionLanguage,
-                    onHindiForm = prefs::setHindiForm,
-                    onEnableService = onEnableService,
                     onAddSchedule = { editor = ScheduleEdit(null) },
                     onEditSchedule = { editor = ScheduleEdit(it) },
                     onScheduleEnabled = { schedule, on ->

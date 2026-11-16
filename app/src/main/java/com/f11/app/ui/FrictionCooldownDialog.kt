@@ -28,7 +28,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -42,8 +41,7 @@ const val FRICTION_WAIT_SECONDS = 30
 /**
  * Intentional friction for loosening any F11 rule:
  *  1. a timed pause,
- *  2. typing a hard-hitting line exactly,
- *  3. optionally, saying a second line out loud (on-device speech only).
+ *  2. typing a hard-hitting line exactly.
  * Tightening rules never goes through this dialog.
  */
 @Composable
@@ -54,17 +52,10 @@ fun FrictionCooldownDialog(
     onCancel: () -> Unit,
     waitSeconds: Int = FRICTION_WAIT_SECONDS,
 ) {
-    val context = LocalContext.current
-    val lines = remember { FrictionLines.pick(2, settings.frictionLanguage, settings.hindiForm) }
-    val typeLine = lines[0]
-    val speakLine = lines.getOrElse(1) { lines[0] }
-    val voiceWanted = settings.voiceFriction
-    val voicePossible = remember { isOnDeviceSpeechAvailable(context) }
+    val typeLine = remember { FrictionLines.pick(1, settings.frictionLanguage, settings.hindiForm).first() }
 
     var secondsLeft by rememberSaveable { mutableIntStateOf(waitSeconds) }
     var typed by rememberSaveable { mutableStateOf("") }
-    var typedSecond by rememberSaveable { mutableStateOf("") }
-    var spoken by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (secondsLeft > 0) {
@@ -74,12 +65,7 @@ fun FrictionCooldownDialog(
     }
 
     val typedOk = FrictionLines.typedMatches(typeLine, typed)
-    val secondOk = when {
-        !voiceWanted -> true
-        voicePossible -> spoken
-        else -> FrictionLines.typedMatches(speakLine, typedSecond) // fallback when no on-device speech
-    }
-    val canConfirm = secondsLeft == 0 && typedOk && secondOk
+    val canConfirm = secondsLeft == 0 && typedOk
 
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Column(
@@ -114,20 +100,6 @@ fun FrictionCooldownDialog(
             Text("Type the line above", style = MaterialTheme.typography.labelLarge, color = F11Palette.TextDim)
             SpacerH(6.dp)
             FrictionField(typed, { typed = it }, done = typedOk)
-
-            if (voiceWanted) {
-                SpacerH(22.dp)
-                if (voicePossible) {
-                    VoiceChallenge(line = speakLine, language = settings.frictionLanguage, onPassed = { spoken = true })
-                } else {
-                    Text("On-device speech isn't available on this phone, so type this one too:",
-                        style = MaterialTheme.typography.labelLarge, color = F11Palette.TextDim)
-                    SpacerH(6.dp)
-                    Text("“$speakLine”", style = MaterialTheme.typography.titleMedium, color = F11Palette.Text)
-                    SpacerH(6.dp)
-                    FrictionField(typedSecond, { typedSecond = it }, done = FrictionLines.typedMatches(speakLine, typedSecond))
-                }
-            }
 
             SpacerH(28.dp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

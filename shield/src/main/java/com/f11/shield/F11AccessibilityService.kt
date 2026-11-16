@@ -1,4 +1,4 @@
-package com.f11.app.service
+package com.f11.shield
 
 import android.accessibilityservice.AccessibilityService
 import android.content.pm.ApplicationInfo
@@ -7,23 +7,30 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
 import com.f11.app.data.F11Settings
 import com.f11.app.data.FocusSchedule
 import com.f11.app.data.FrictionLines
-import com.f11.app.data.PreferencesManager
+import com.f11.app.data.ShieldContract
 import com.f11.app.data.TargetApp
 import com.f11.app.data.TargetAppsConfig
+import com.f11.app.service.CounterOverlay
+import com.f11.app.service.OverlayController
+import com.f11.app.service.ScrollTracker
+import com.f11.app.service.ShieldMode
+import com.f11.app.service.SwipeDebouncer
 
 /**
  * Watches for swipes in short-form video feeds and raises the shield when the user's
  * swipe budget runs out (or on the first swipe, if they chose to block those feeds outright).
- * In Max Focus it blocks guarded apps as soon as they come to the front. Only package names, view resource ids and class names are inspected;
- * no on-screen text is read and nothing is stored beyond counters in private preferences.
+ * In Max Focus it blocks guarded apps as soon as they come to the front. Only package names, view
+ * resource ids and class names are inspected; no on-screen text is read. Settings and counters live
+ * in F11 itself and are reached through [ShieldClient]; without F11 installed the shield stays idle.
  */
 class F11AccessibilityService : AccessibilityService() {
 
-    private lateinit var prefs: PreferencesManager
+    private lateinit var client: ShieldClient
     private lateinit var tracker: ScrollTracker
     private var overlay: OverlayController? = null
     private var counter: CounterOverlay? = null
@@ -45,8 +52,8 @@ class F11AccessibilityService : AccessibilityService() {
     /** Starts or ends scheduled Max Focus on time, even if the user is sitting in a guarded app. */
     private val scheduleTick = object : Runnable {
         override fun run() {
-            if (::prefs.isInitialized) {
-                val settings = prefs.current
+            val settings = if (::client.isInitialized) client.refresh() else null
+            if (settings != null && ::tracker.isInitialized) {
                 syncWithSettings(settings)
                 // Ask Android what's really in front; never shield F11 itself or a non-target app.
                 val front = rootInActiveWindow?.packageName?.toString()
@@ -65,8 +72,8 @@ class F11AccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        prefs = PreferencesManager.get(this)
-        val settings = prefs.current
+        client = ShieldClient(this)
+        val settings = client.refresh() ?: F11Settings()
         tracker = ScrollTracker(
             swipeLimit = settings.swipeLimit,
             cooldownMs = settings.cooldownMs,
@@ -74,17 +81,20 @@ class F11AccessibilityService : AccessibilityService() {
         )
         overlay = OverlayController(
             service = this,
+            windowType = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             onLeave = ::leave,
-            onCooldownFinished = { prefs.clearBlock() },
+            onCooldownFinished = { client.clearBlock() },
             strongLine = {
-                val s = prefs.current
+                val s = client.current ?: F11Settings()
                 FrictionLines.pick(1, s.frictionLanguage, s.hindiForm).first()
             },
         )
         counter = CounterOverlay(this)
         handler.postDelayed(scheduleTick, SCHEDULE_TICK_MS)
         // F11 may (re)start while a guarded app is already in front.
-        rootInActiveWindow?.packageName?.toString()?.let { onWindowChanged(it, prefs.current) }
+        val front = rootInActiveWindow?.packageName?.toString()
+        val current = client.current
+        if (front != null && current != null) onWindowChanged(front, current)
     }
 
     /**
@@ -119,13 +129,15 @@ class F11AccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || !::tracker.isInitialized) return
         val packageName = event.packageName?.toString() ?: return
-        val settings = prefs.current
+        // Window changes are rare; refresh then so a fresh day or a just-installed F11 is picked up.
+        val settings = (if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) client.refresh() else client.settings())
+            ?: return idle()
         syncWithSettings(settings)
 
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 // F11's own overlays also raise window events, so only F11's real screen counts.
-                if (packageName == this.packageName && event.className?.toString() == MAIN_ACTIVITY) {
+                if (packageName == ShieldContract.APP_PACKAGE || event.className?.toString() == STATUS_ACTIVITY) {
                     counter?.hide()
                 }
                 onWindowChanged(packageName, settings)
@@ -136,6 +148,13 @@ class F11AccessibilityService : AccessibilityService() {
 
     private fun onWindowChanged(packageName: String, settings: F11Settings) {
         if (packageName in IGNORED_WINDOW_PACKAGES || packageName == this.packageName) return
+        if (packageName == ShieldContract.APP_PACKAGE) {
+            // F11's own screen: never shield it, and treat it as leaving the feed.
+            foregroundPackage = packageName
+            updatePagerWatch(packageName, settings)
+            overlay?.hide()
+            return
+        }
         val previous = foregroundPackage
         foregroundPackage = packageName
         if (packageName != previous) counter?.hide()
@@ -174,7 +193,7 @@ class F11AccessibilityService : AccessibilityService() {
      * (no text is read). A new identity means the user swiped to another Short.
      */
     private fun pollPager(app: TargetApp) {
-        val settings = prefs.current
+        val settings = client.settings() ?: return
         if (maxFocusApplies(app.packageName, settings)) return
         if (overlay?.isShowing == true) return
         val pager = findFeed(app)
@@ -206,7 +225,7 @@ class F11AccessibilityService : AccessibilityService() {
         val enforced = isGuarded(app.packageName, settings)
         if (enforced && settings.blockShortFormCompletely) {
             if (overlay?.mode !is ShieldMode.ShortFormBlocked) {
-                prefs.recordShield()
+                client.recordShield()
                 overlay?.show(ShieldMode.ShortFormBlocked(app.displayName, app.surfaceName))
             }
             counter?.hide()
@@ -218,10 +237,10 @@ class F11AccessibilityService : AccessibilityService() {
             val result = tracker.onScrollEvent(now)
             if (isDebugBuild && result != ScrollTracker.Result.Debounced) Log.d(TAG, "tracker: $result")
             when (result) {
-                is ScrollTracker.Result.Counted -> prefs.recordSwipe()
+                is ScrollTracker.Result.Counted -> client.recordSwipe()
                 is ScrollTracker.Result.LimitReached -> {
-                    prefs.recordSwipe()
-                    prefs.recordShield(result.blockedUntil)
+                    client.recordSwipe()
+                    client.recordShield(result.blockedUntil)
                     overlay?.show(ShieldMode.Cooldown(app.displayName, app.surfaceName, result.blockedUntil))
                 }
                 is ScrollTracker.Result.Blocked ->
@@ -229,10 +248,10 @@ class F11AccessibilityService : AccessibilityService() {
                 ScrollTracker.Result.Debounced -> Unit
             }
         } else if (awarenessDebouncer.isNewSwipe(now)) {
-            prefs.recordSwipe()
+            client.recordSwipe()
             if (isDebugBuild) Log.d(TAG, "awareness swipe (guard off)")
         }
-        updateCounter(prefs.current, enforced)
+        updateCounter(client.current ?: settings, enforced)
     }
 
     /** Live pill at the top of the feed: today's swipes, plus what's left when enforcing. */
@@ -260,7 +279,7 @@ class F11AccessibilityService : AccessibilityService() {
             schedule?.let { "${it.name} · until ${FocusSchedule.formatMinute(it.endMinute)}" },
         )
         if (overlay?.mode != mode) {
-            prefs.recordShield()
+            client.recordShield()
             overlay?.show(mode)
         }
     }
@@ -270,7 +289,13 @@ class F11AccessibilityService : AccessibilityService() {
 
     /** Max Focus works even with the swipe guard off; per-app switches still apply. */
     private fun maxFocusApplies(packageName: String, settings: F11Settings): Boolean =
-        settings.maxFocusActive() && TargetAppsConfig.isTarget(packageName) && settings.isAppGuarded(packageName)
+        settings.maxFocusApplies(packageName)
+
+    /** F11 is missing: nothing to enforce, so take everything down. */
+    private fun idle() {
+        overlay?.hide()
+        counter?.hide()
+    }
 
     /** Keeps the tracker and shield in step with settings changed from the dashboard. */
     private fun syncWithSettings(settings: F11Settings) {
@@ -278,7 +303,7 @@ class F11AccessibilityService : AccessibilityService() {
         if (tracker.cooldownMs != settings.cooldownMs) tracker.cooldownMs = settings.cooldownMs
         if (!settings.guardEnabled && (tracker.blockedUntil != 0L || tracker.swipeCount != 0)) {
             tracker.reset()
-            if (settings.blockedUntil != 0L) prefs.clearBlock()
+            if (settings.blockedUntil != 0L) client.clearBlock()
         }
         val stale = when (overlay?.mode) {
             is ShieldMode.MaxFocus -> !settings.maxFocusActive()
@@ -316,13 +341,14 @@ class F11AccessibilityService : AccessibilityService() {
         counter = null
         overlay?.hide()
         overlay = null
+        if (::client.isInitialized) client.close()
         super.onDestroy()
     }
 
     private companion object {
         const val TAG = "F11Service"
         const val MAX_ANCESTOR_DEPTH = 4
-        val MAIN_ACTIVITY: String = com.f11.app.MainActivity::class.java.name
+        val STATUS_ACTIVITY: String = StatusActivity::class.java.name
         const val PAGER_POLL_MS = 1_000L
         const val SCHEDULE_TICK_MS = 30_000L
         const val LEAVE_CHECK_MS = 1_000L

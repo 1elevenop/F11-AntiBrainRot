@@ -1,6 +1,6 @@
 package com.f11.app.service
 
-import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
@@ -16,7 +16,10 @@ import android.widget.TextView
  * Small, non-interactive pill at the top centre of Reels/Shorts showing today's swipe count.
  * It never takes touches or focus, so the app underneath works normally.
  */
-class CounterOverlay(private val service: AccessibilityService) {
+class CounterOverlay(
+    private val service: Context,
+    private val windowType: Int = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+) {
 
     private val windowManager = service.getSystemService(WindowManager::class.java)
     private var pill: TextView? = null
@@ -57,7 +60,7 @@ class CounterOverlay(private val service: AccessibilityService) {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,

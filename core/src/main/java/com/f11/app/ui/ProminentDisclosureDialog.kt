@@ -17,43 +17,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 
 /**
- * Google Play "prominent disclosure" for the Accessibility API. Shown in-app, before the user
+ * Google Play "prominent disclosure" for a sensitive permission. Shown in-app, before the user
  * is sent to system settings, and requires an explicit affirmative tap.
  */
 @Composable
 fun ProminentDisclosureDialog(
+    title: String,
+    sections: List<Pair<String, String>>,
     onAccept: () -> Unit,
     onDecline: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDecline,
         properties = DialogProperties(dismissOnClickOutside = false),
-        title = { Text("F11 uses the Accessibility API") },
+        title = { Text(title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                DisclosureSection(
-                    "What F11 does",
-                    "F11 counts your swipes in short-form video feeds (Instagram Reels, YouTube " +
-                        "Shorts, TikTok, Facebook Reels, Snapchat Spotlight) and covers the screen " +
-                        "with a shield when you reach the limit you set. With Max Focus or a focus " +
-                        "schedule on, it blocks those apps entirely.",
-                )
-                DisclosureSection(
-                    "What F11 accesses",
-                    "Which app is in the foreground, and the technical id of the list you scroll " +
-                        "in those apps. F11 does not read text, messages, passwords or videos, and " +
-                        "does not record your screen.",
-                )
-                DisclosureSection(
-                    "Where the data goes",
-                    "Nowhere. F11 has no internet permission, so it physically cannot send " +
-                        "anything off your device. Only daily swipe and shield counts are kept, in " +
-                        "private app storage.",
-                )
-                DisclosureSection(
-                    "Your control",
-                    "You can turn the F11 Shield off at any time in Settings > Accessibility.",
-                )
+                sections.forEach { (heading, body) -> DisclosureSection(heading, body) }
             }
         },
         confirmButton = {

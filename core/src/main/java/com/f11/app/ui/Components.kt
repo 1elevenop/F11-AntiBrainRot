@@ -302,22 +302,6 @@ fun ChartGlyph(color: Color = F11Palette.Text) {
 }
 
 @Composable
-fun MicGlyph(color: Color = F11Palette.Text) {
-    Canvas(Modifier.size(20.dp)) {
-        val w = 1.8.dp.toPx()
-        val cx = size.width / 2f
-        drawRoundRect(
-            color, topLeft = Offset(cx - size.width * 0.17f, size.height * 0.05f),
-            size = Size(size.width * 0.34f, size.height * 0.55f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.width * 0.17f),
-        )
-        drawArc(color, 0f, 180f, false, Offset(size.width * 0.18f, size.height * 0.22f),
-            Size(size.width * 0.64f, size.height * 0.5f), style = Stroke(w, cap = StrokeCap.Round))
-        drawLine(color, Offset(cx, size.height * 0.72f), Offset(cx, size.height * 0.92f), w, StrokeCap.Round)
-    }
-}
-
-@Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = F11Palette.TextDim,
         modifier = modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp))

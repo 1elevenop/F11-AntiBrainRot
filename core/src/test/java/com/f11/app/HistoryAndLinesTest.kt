@@ -55,14 +55,6 @@ class HistoryAndLinesTest {
     }
 
     @Test
-    fun spokenLineToleratesSmallRecognitionErrors() {
-        val line = "Every scroll is a moment of my life I will never get back."
-        assertTrue(FrictionLines.spokenMatches(line, "every scroll is a moment of my life i will never get back"))
-        assertTrue(FrictionLines.spokenMatches(line, "every scroll is a moment of my life I'll never get back"))
-        assertFalse(FrictionLines.spokenMatches(line, "every scroll is fine"))
-    }
-
-    @Test
     fun hindiLinesRenderChosenGenderAndMatchDanda() {
         val m = FrictionLines.all(FrictionLanguage.HINDI, HindiForm.MASCULINE)
         val f = FrictionLines.all(FrictionLanguage.HINDI, HindiForm.FEMININE)

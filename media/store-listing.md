@@ -26,7 +26,6 @@ MAX FOCUS
 
 FRICTION, ON PURPOSE
 • Loosening any rule takes a 30-second pause and typing a hard-hitting line, like "I am sacrificing discipline for dopamine."
-• Add an extra layer: say a line out loud (recognised on-device).
 • Lines in English and Hindi.
 
 SEE THE PATTERN
@@ -49,10 +48,15 @@ Productivity · Digital wellbeing
 | Feature graphic 1024×500 | `play-store/feature-graphic-1024x500.png` |
 | Phone screenshots 1080×1920 | `screenshots/01-home.png` … `07-settings.png` |
 
-## Accessibility API declaration (Play Console)
-**Core functionality:** F11 is a digital-wellbeing app that limits scrolling in short-form video feeds. It uses the AccessibilityService API to detect which app is in the foreground and when the user swipes in Instagram Reels, YouTube Shorts, TikTok, Facebook Reels or Snapchat Spotlight (using view resource IDs, not text), and to draw a full-screen blocking overlay when the user's own limit or focus schedule applies. No data is collected or transmitted; the app has no internet permission.
+## Usage access and foreground service (Play Console, F11)
+**Usage access:** F11 reads only the package name of the app in front, to cover apps the user chose to guard during their own Max Focus or focus schedule. Disclosure shown in-app before the user is sent to Usage access settings (`MainActivity.kt`, `ProminentDisclosureDialog`).
 
-**Prominent disclosure:** shown in-app before the user is sent to Accessibility settings (`ProminentDisclosureDialog.kt`), requiring an explicit "Agree and continue".
+**Foreground service (specialUse):** `FocusWatchService` runs only while Max Focus is on or a focus schedule is enabled, with an ongoing notification, so a guarded app is covered within a second of opening.
+
+## Accessibility API declaration (Play Console, F11 Shield plugin)
+**Core functionality:** F11 Shield is the optional plugin for F11, a digital-wellbeing app that limits scrolling in short-form video feeds. It uses the AccessibilityService API to detect which app is in the foreground and when the user swipes in Instagram Reels, YouTube Shorts, TikTok, Facebook Reels or Snapchat Spotlight (using view resource IDs, not text), and to draw a full-screen blocking overlay when the user's own limit or focus schedule applies. No data is collected or transmitted; the app has no internet permission.
+
+**Prominent disclosure:** shown in-app before the user is sent to Accessibility settings (`shield/.../StatusActivity.kt`), requiring an explicit "Agree and continue".
 
 **Video:** record enabling the service, swiping Reels until the shield appears, and Max Focus blocking Instagram.
 

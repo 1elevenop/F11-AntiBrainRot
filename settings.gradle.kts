@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "F11"
-include(":app")
+include(":core", ":app", ":shield")

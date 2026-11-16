@@ -3,9 +3,9 @@ package com.f11.app.data
 import java.text.Normalizer
 import kotlin.random.Random
 
-enum class FrictionLanguage(val code: String, val speechTag: String, val label: String) {
-    ENGLISH("en", "en-US", "English"),
-    HINDI("hi", "hi-IN", "हिन्दी");
+enum class FrictionLanguage(val code: String, val label: String) {
+    ENGLISH("en", "English"),
+    HINDI("hi", "हिन्दी");
 
     companion object {
         fun fromCode(code: String?): FrictionLanguage = entries.firstOrNull { it.code == code } ?: ENGLISH
@@ -61,7 +61,7 @@ object FrictionLines {
         }
     }
 
-    /** Distinct random lines, e.g. one to type and another to speak. */
+    /** Distinct random lines. */
     fun pick(
         count: Int,
         language: FrictionLanguage,
@@ -81,18 +81,4 @@ object FrictionLines {
     fun typedMatches(expected: String, typed: String): Boolean =
         normalize(typed).isNotEmpty() && normalize(typed) == normalize(expected)
 
-    /**
-     * Speech recognition is imperfect, so a spoken line passes when most of its words were heard
-     * in order-independent fashion.
-     */
-    fun spokenMatches(expected: String, heard: String, threshold: Double = 0.75): Boolean {
-        val want = normalize(expected).split(' ').filter { it.isNotEmpty() }
-        if (want.isEmpty()) return false
-        val got = normalize(heard).split(' ').filter { it.isNotEmpty() }.toMutableList()
-        var hits = 0
-        for (word in want) {
-            if (got.remove(word)) hits++
-        }
-        return hits.toDouble() / want.size >= threshold
-    }
 }

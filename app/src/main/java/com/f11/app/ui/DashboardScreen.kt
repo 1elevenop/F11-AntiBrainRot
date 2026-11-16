@@ -21,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.f11.app.data.F11Settings
 import com.f11.app.data.FocusSchedule
+import com.f11.app.data.ShieldState
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
@@ -41,9 +43,8 @@ private data class HeroPage(val title: String, val value: Int, val unit: String,
 @Composable
 fun HomeScreen(
     settings: F11Settings,
-    serviceEnabled: Boolean,
-    serviceStalled: Boolean,
-    onEnableService: () -> Unit,
+    setup: SetupState,
+    setupActions: SetupActions,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
     onGuardToggle: (Boolean) -> Unit,
@@ -77,17 +78,12 @@ fun HomeScreen(
             right = { CircleIconButton("Settings", onOpenSettings) { MenuGlyph() } },
         )
 
-        if (!serviceEnabled) {
-            Tile(Modifier.padding(horizontal = 20.dp).fillMaxWidth(), brush = F11Palette.Sunset) {
-                TileLabel(if (serviceStalled) "Shield stopped" else "Shield is off")
-                SpacerH(4.dp)
-                Text(if (serviceStalled) "Android stopped F11 Shield, often after an update. Turn it off and on again in Accessibility settings."
-                    else "Turn on the F11 Shield so it can count and guard your feeds.",
-                    style = MaterialTheme.typography.bodySmall, color = F11Palette.Text.copy(alpha = 0.8f))
-                SpacerH(12.dp)
-                Button(onClick = onEnableService, colors = ButtonDefaults.buttonColors(
-                    containerColor = F11Palette.Text, contentColor = F11Palette.Black)) { Text(if (serviceStalled) "Open settings" else "Enable") }
-            }
+        if (!setup.focusReady) {
+            FocusSetupCard(setup, setupActions, Modifier.padding(horizontal = 20.dp))
+            SpacerH(16.dp)
+        }
+        if (!setup.shieldOn && setup.shield != ShieldState.NOT_INSTALLED) {
+            ShieldPluginCard(setup, setupActions, Modifier.padding(horizontal = 20.dp))
             SpacerH(16.dp)
         }
 

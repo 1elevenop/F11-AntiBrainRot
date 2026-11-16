@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **F11 no longer uses Accessibility.** It installs normally even where Play Protect blocks sideloaded accessibility apps, and doesn't pause UPI payments. Max Focus and focus schedules now use Usage access and "Display over other apps".
+- Reels/Shorts swipe counting, swipe budgets, block completely and the live counter moved to the new optional **F11 Shield** plugin (`com.f11.shield`). Updating F11 keeps your history and settings; install the plugin to get the swipe features back.
+- The Friction section was removed from Settings.
+
+### Removed
+- The optional "say a line out loud" friction step. F11 no longer requests microphone permission.
+
 ## F11 1.0 — 15 November 2026
 
 First public release. **One life. Stop the scroll.**

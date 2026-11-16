@@ -1,19 +1,7 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-
-// Release signing comes from keystore.properties (git-ignored) or F11_* environment variables.
-// Without either, release builds are produced unsigned.
-val signingProps = Properties().apply {
-    val file = rootProject.file("keystore.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
-fun signingValue(key: String, env: String): String? =
-    signingProps.getProperty(key) ?: System.getenv(env)
-val releaseStoreFile = signingValue("storeFile", "F11_STORE_FILE")
 
 android {
     namespace = "com.f11.app"
@@ -23,17 +11,17 @@ android {
         applicationId = "com.f11.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     signingConfigs {
-        if (releaseStoreFile != null) {
+        f11ReleaseSigning(rootProject)?.let { cfg ->
             create("release") {
-                storeFile = rootProject.file(releaseStoreFile)
-                storePassword = signingValue("storePassword", "F11_STORE_PASSWORD")
-                keyAlias = signingValue("keyAlias", "F11_KEY_ALIAS")
-                keyPassword = signingValue("keyPassword", "F11_KEY_PASSWORD")
+                storeFile = cfg.storeFile
+                storePassword = cfg.storePassword
+                keyAlias = cfg.keyAlias
+                keyPassword = cfg.keyPassword
             }
         }
     }
@@ -58,6 +46,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
     implementation(composeBom)
     implementation("androidx.core:core-ktx:1.16.0")
@@ -68,5 +57,4 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    testImplementation("junit:junit:4.13.2")
 }

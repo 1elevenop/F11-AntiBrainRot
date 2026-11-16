@@ -1,6 +1,6 @@
 package com.f11.app.service
 
-import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
@@ -13,7 +13,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
-import com.f11.app.R
+import com.f11.core.R
 import java.util.Locale
 
 /** Why the shield is up. */
@@ -29,12 +29,13 @@ sealed interface ShieldMode {
 }
 
 /**
- * Draws the full-screen F11 shield with TYPE_ACCESSIBILITY_OVERLAY, which an
- * AccessibilityService may use without the SYSTEM_ALERT_WINDOW permission.
+ * Draws the full-screen F11 shield. The Shield plugin uses TYPE_ACCESSIBILITY_OVERLAY (no extra
+ * permission); F11 itself uses TYPE_APPLICATION_OVERLAY, which needs "Display over other apps".
  * Must be called on the main thread.
  */
 class OverlayController(
-    private val service: AccessibilityService,
+    private val service: Context,
+    private val windowType: Int,
     /** Called after the shield is dismissed by its button; Max Focus leaves the app, others step back. */
     private val onLeave: (ShieldMode) -> Unit,
     private val onCooldownFinished: () -> Unit,
@@ -148,7 +149,7 @@ class OverlayController(
     private fun layoutParams() = WindowManager.LayoutParams(
         WindowManager.LayoutParams.MATCH_PARENT,
         WindowManager.LayoutParams.MATCH_PARENT,
-        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        windowType,
         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT,
     ).apply {

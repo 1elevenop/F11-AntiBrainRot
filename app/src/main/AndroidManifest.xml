@@ -2,18 +2,30 @@
 <!--
     STRICT ZERO-INTERNET RULE: this app declares no INTERNET permission.
     Nothing F11 observes can ever leave the device.
-    The shield is drawn with TYPE_ACCESSIBILITY_OVERLAY, so SYSTEM_ALERT_WINDOW is not requested.
+    F11 has no Accessibility service. Max Focus finds the app in front with Usage access and
+    covers guarded apps with an overlay ("Display over other apps"). Reels/Shorts swipe counting
+    lives in the optional F11 Shield plugin (com.f11.shield).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Optional friction layer: speak a line. Recognised on-device only; audio never leaves the phone. -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Only apps signed with F11's key (the F11 Shield plugin) may use ShieldProvider. -->
+    <permission
+        android:name="com.f11.permission.SHIELD"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.f11.permission.SHIELD" />
 
     <queries>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
+        <package android:name="com.f11.shield" />
     </queries>
 
     <application
@@ -37,16 +49,27 @@
         </activity>
 
         <service
-            android:name=".service.F11AccessibilityService"
+            android:name=".focus.FocusWatchService"
             android:exported="false"
-            android:label="@string/accessibility_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Digital wellbeing: blocks apps the user chose during their own Max Focus or focus schedule" />
         </service>
+
+        <receiver
+            android:name=".focus.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name=".shield.ShieldProvider"
+            android:authorities="com.f11.app.shield"
+            android:exported="true"
+            android:permission="com.f11.permission.SHIELD" />
     </application>
 </manifest>
